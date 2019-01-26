@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>index</title>
+
+    <link rel="stylesheet" th:href="@{/lib/element-ui/2.4.11/index.css}"/>
+
+    <script th:src="@{/lib/vue/2.5.22/vue.min.js}"></script>
+    <script th:src="@{/lib/element-ui/2.4.11/index.js}"></script>
+    <script th:src="@{/lib/axios/0.18.0/axios.min.js}"></script>
+</head>
+<body>
+<div id="app">
+    <el-tree :props="nodeProps" :load="loadNode" lazy show-checkbox></el-tree>
+</div>
+
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                nodeProps: {
+                    label: 'name',
+                    isLeaf: 'isLeaf'
+                },
+            };
+        },
+        methods: {
+            loadNode(node, resolve) {
+                if (node.level === 0) {
+                    return resolve([{ name: '/', isLeaf: false, path: '/' }]);
+                    // return resolve([{ name: '/', isLeaf: false, path: 'D:\\' }]);
+                }
+
+                axios({
+                    url: '/api/subdirectories',
+                    method: 'get',
+                    params: {
+                        directory: node.data.path
+                    }
+                }).then(function (response) {
+                    resolve(response.data);
+                }).catch(function (error) {
+                    window.alert(error.message);
+                });
+            }
+        }
+    });
+</script>
+</body>
+</html>
