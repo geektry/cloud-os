@@ -1,6 +1,6 @@
 package com.geektry.cloudos.entity;
 
-public class DirectoryFile {
+public class Node {
 
     public enum Type {
         DIR, FILE
@@ -12,7 +12,7 @@ public class DirectoryFile {
 
     private String name;
 
-    public DirectoryFile(Enum type, String path, String name) {
+    public Node(Enum type, String path, String name) {
         this.type = type;
         this.path = path;
         this.name = name;

@@ -1,6 +1,6 @@
 package com.geektry.cloudos.controller;
 
-import com.geektry.cloudos.entity.DirectoryFile;
+import com.geektry.cloudos.entity.Node;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -8,6 +8,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -15,14 +16,26 @@ import java.util.List;
 @RestController
 public class ApiController {
 
-    @GetMapping("/api/subdirectories")
-    public Mono<List<DirectoryFile>> listSubdirectories(@RequestParam("directory") String directory) throws IOException {
+    @GetMapping("/api/child_nodes")
+    public Mono<List<Node>> listChildNodes(@RequestParam("path") String path) throws IOException {
 
-        return Flux.fromStream(Files.list(Paths.get(directory)))
-                .map(path -> new DirectoryFile(
-                        Files.isDirectory(path) ? DirectoryFile.Type.DIR : DirectoryFile.Type.FILE,
-                        path.toString(),
-                        path.getName(path.getNameCount() - 1).toString()))
+        return Flux.fromStream(Files.list(Paths.get(path)))
+                .map(p -> new Node(
+                        Files.isDirectory(p) ? Node.Type.DIR : Node.Type.FILE,
+                        p.toString(),
+                        p.getFileName().toString()))
+                .sort((n1, n2) -> {
+                    if (n1.getType().equals(n2.getType())) {
+                        return 0;
+                    }
+                    return n1.getType().equals(Node.Type.DIR) ? -1 : 1;
+                })
                 .collectList();
+    }
+
+    @GetMapping("/api/file")
+    public Mono<String> getFile(@RequestParam("path") String path) throws IOException {
+
+        return Mono.just(Files.readString(Paths.get(path)));
     }
 }

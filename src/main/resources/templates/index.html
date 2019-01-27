@@ -2,9 +2,10 @@
 <html lang="zh" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>index</title>
+    <title>GeekTry Cloud OS</title>
 
     <link rel="stylesheet" th:href="@{/lib/element-ui/2.4.11/index.css}"/>
+    <link rel="stylesheet" th:href="@{/lib/fontawesome/5.6.3/all.css}"/>
 
     <script th:src="@{/lib/vue/2.5.22/vue.min.js}"></script>
     <script th:src="@{/lib/element-ui/2.4.11/index.js}"></script>
@@ -12,11 +13,45 @@
 </head>
 <body>
 <div id="app">
-    <el-tree :props="nodeProps" :load="loadNode" lazy show-checkbox></el-tree>
+    <el-row>
+        <el-col :span="6">
+            <el-tree style="height: 700px; overflow: auto;"
+                     @node-click="handleNodeClick"
+                     :props="nodeProps"
+                     :load="loadNode"
+                     highlight-current
+                     accordion
+                     lazy></el-tree>
+        </el-col>
+        <el-col :span="18">
+            <el-table style=""
+                      height="700"
+                      :data="currentChildNodes"
+                      highlight-current-row>
+                <el-table-column label="名称">
+                    <template slot-scope="scope">
+                        <i class="far fa-folder" v-if="scope.row.type == 'DIR'"></i>
+                        <i class="far fa-file" v-if="scope.row.type == 'FILE'"></i>
+                        <span style="margin-left: 10px">{{ scope.row.name }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作">
+                    <template slot-scope="scope">
+                        <el-button v-if="scope.row.type == 'FILE'" @click="viewFile(scope.row.path, scope.row.name)">查看</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </el-col>
+    </el-row>
+
+    <el-dialog :visible.sync="fileViewer.visible">
+        <span slot="title">{{ fileViewer.title }}</span>
+        <span>{{ fileViewer.content }}</span>
+    </el-dialog>
 </div>
 
 <script>
-    new Vue({
+    const app = new Vue({
         el: '#app',
         data() {
             return {
@@ -24,25 +59,57 @@
                     label: 'name',
                     isLeaf: 'isLeaf'
                 },
+                currentPath: '',
+                currentChildNodes: [],
+                fileViewer: {
+                    visible: false,
+                    title: '',
+                    content: ''
+                }
             };
         },
         methods: {
             loadNode(node, resolve) {
                 if (node.level === 0) {
                     return resolve([{ name: '/', isLeaf: false, path: '/' }]);
-                    // return resolve([{ name: '/', isLeaf: false, path: 'D:\\' }]);
                 }
 
                 axios({
-                    url: '/api/subdirectories',
+                    url: '/api/child_nodes',
                     method: 'get',
                     params: {
-                        directory: node.data.path
+                        path: node.data.path
                     }
                 }).then(function (response) {
-                    resolve(response.data);
+                    app.currentChildNodes = response.data;
+                    resolve(app.currentChildNodes);
                 }).catch(function (error) {
-                    window.alert(error.message);
+                    app.$message({
+                        message: error.message,
+                        type: 'error'
+                    });
+                });
+            },
+            handleNodeClick(data, node, component) {
+                app.currentPath = component.node.data.path;
+            },
+            viewFile(path, name) {
+                axios({
+                    url: '/api/file',
+                    method: 'get',
+                    params: {
+                        path: path
+                    }
+                }).then(function (response) {
+                    app.fileViewer.title = name;
+                    app.fileViewer.content = response.data;
+                    app.fileViewer.visible = true;
+                }).catch(function (error) {
+                    console.error(error.message);
+                    app.$message({
+                        message: '暂时不支持查看此类文件~',
+                        type: 'warning'
+                    });
                 });
             }
         }
