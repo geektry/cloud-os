@@ -17,37 +17,28 @@
         <el-col :span="6">
             <el-tree style="height: 700px; overflow: auto;"
                      @node-click="handleNodeClick"
-                     :props="nodeProps"
+                     :props="nodeTree.nodeProps"
                      :load="loadNode"
                      highlight-current
                      accordion
                      lazy></el-tree>
         </el-col>
+
         <el-col :span="18">
-            <el-table style=""
-                      height="700"
-                      :data="currentChildNodes"
-                      highlight-current-row>
-                <el-table-column label="名称">
-                    <template slot-scope="scope">
-                        <i class="far fa-folder" v-if="scope.row.type == 'DIR'"></i>
-                        <i class="far fa-file" v-if="scope.row.type == 'FILE'"></i>
-                        <span style="margin-left: 10px">{{ scope.row.name }}</span>
-                    </template>
-                </el-table-column>
-                <el-table-column label="操作">
-                    <template slot-scope="scope">
-                        <el-button v-if="scope.row.type == 'FILE'" @click="viewFile(scope.row.path, scope.row.name)">查看</el-button>
-                    </template>
-                </el-table-column>
-            </el-table>
+            <el-tabs v-model="fileTabs.tabPaneKey"
+                     type="card"
+                     editable
+                     @tab-remove="handleRemoveTab">
+                <el-tab-pane v-for="tabPane in fileTabs.tabPanes"
+                             :label="tabPane.label"
+                             :name="tabPane.name">
+                    <span v-for="line in tabPane.contentLines">
+                        {{ line }}<br>
+                    </span>
+                </el-tab-pane>
+            </el-tabs>
         </el-col>
     </el-row>
-
-    <el-dialog :visible.sync="fileViewer.visible">
-        <span slot="title">{{ fileViewer.title }}</span>
-        <span>{{ fileViewer.content }}</span>
-    </el-dialog>
 </div>
 
 <script>
@@ -55,23 +46,22 @@
         el: '#app',
         data() {
             return {
-                nodeProps: {
-                    label: 'name',
-                    isLeaf: 'isLeaf'
+                nodeTree: {
+                    nodeProps: {
+                        label: 'name',
+                        isLeaf: 'isLeaf'
+                    }
                 },
-                currentPath: '',
-                currentChildNodes: [],
-                fileViewer: {
-                    visible: false,
-                    title: '',
-                    content: ''
+                fileTabs: {
+                    tabPaneKey: '',
+                    tabPanes: []
                 }
             };
         },
         methods: {
             loadNode(node, resolve) {
                 if (node.level === 0) {
-                    return resolve([{ name: '/', isLeaf: false, path: '/' }]);
+                    return resolve([{ type: 'DIR', path: '/', name: '/', isLeaf: false }]);
                 }
 
                 axios({
@@ -80,10 +70,9 @@
                     params: {
                         path: node.data.path
                     }
-                }).then(function (response) {
-                    app.currentChildNodes = response.data;
-                    resolve(app.currentChildNodes);
-                }).catch(function (error) {
+                }).then((response) => {
+                    resolve(response.data);
+                }).catch((error) => {
                     app.$message({
                         message: error.message,
                         type: 'error'
@@ -91,26 +80,53 @@
                 });
             },
             handleNodeClick(data, node, component) {
-                app.currentPath = component.node.data.path;
-            },
-            viewFile(path, name) {
+                if (data.type === 'DIR') {
+                    return;
+                }
+
+                if (app.fileTabs.tabPanes.filter(o => o.name === data.path).length !== 0) {
+                    app.fileTabs.tabPaneKey = data.path;
+                    return;
+                }
+
                 axios({
                     url: '/api/file',
                     method: 'get',
                     params: {
-                        path: path
+                        path: data.path
                     }
-                }).then(function (response) {
-                    app.fileViewer.title = name;
-                    app.fileViewer.content = response.data;
-                    app.fileViewer.visible = true;
-                }).catch(function (error) {
+                }).then((response) => {
+                    const contentLines = response.data;
+                    app.fileTabs.tabPanes.push({
+                        label: data.name,
+                        name: data.path,
+                        contentLines: contentLines
+                    });
+                    app.fileTabs.tabPaneKey = data.path;
+                }).catch((error) => {
                     console.error(error.message);
                     app.$message({
                         message: '暂时不支持查看此类文件~',
                         type: 'warning'
                     });
                 });
+            },
+            handleRemoveTab(targetTabName) {
+                let tabs = app.fileTabs.tabPanes;
+                let activeName = app.fileTabs.tabPaneKey;
+                if (activeName === targetTabName) {
+                    tabs.forEach((tab, index) => {
+                        if (tab.name === targetTabName) {
+                            let nextTab = tabs[index + 1] || tabs[index - 1];
+                            if (nextTab) {
+                                activeName = nextTab.name;
+                            }
+                        }
+                    });
+                }
+
+                app.fileTabs.tabPaneKey = activeName;
+                app.fileTabs.tabPanes = tabs.filter(tab => tab.name !== targetTabName);
             }
         }
     });

@@ -8,7 +8,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -34,8 +33,9 @@ public class ApiController {
     }
 
     @GetMapping("/api/file")
-    public Mono<String> getFile(@RequestParam("path") String path) throws IOException {
+    public Mono<List<String>> listFileLines(@RequestParam("path") String path) throws IOException {
 
-        return Mono.just(Files.readString(Paths.get(path)));
+        return Flux.fromStream(Files.lines(Paths.get(path)))
+                .collectList();
     }
 }
