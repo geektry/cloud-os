@@ -9,6 +9,5 @@ public class CloudOsApplication {
     public static void main(String[] args) {
         SpringApplication.run(CloudOsApplication.class, args);
     }
-
 }
 

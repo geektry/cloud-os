@@ -11,9 +11,9 @@
     <script th:src="@{/lib/element-ui/2.4.11/index.js}"></script>
     <script th:src="@{/lib/axios/0.18.0/axios.min.js}"></script>
 </head>
-<body>
+<body style="font-family: 'Helvetica Neue',Helvetica,'PingFang SC','Hiragino Sans GB','Microsoft YaHei','微软雅黑',Arial,sans-serif;">
 <div id="app">
-    <el-row>
+    <el-row :gutter="20">
         <el-col :span="6">
             <el-tree style="height: 700px; overflow: auto;"
                      @node-click="handleNodeClick"
@@ -25,10 +25,11 @@
         </el-col>
 
         <el-col :span="18">
-            <el-tabs v-model="fileTabs.tabPaneKey"
+            <el-tabs style="height: 700px; overflow: auto;"
+                     v-model="fileTabs.currentTabPaneName"
                      type="card"
-                     editable
-                     @tab-remove="handleRemoveTab">
+                     closable
+                     @tab-remove="removeTab">
                 <el-tab-pane v-for="tabPane in fileTabs.tabPanes"
                              :label="tabPane.label"
                              :name="tabPane.name">
@@ -53,7 +54,7 @@
                     }
                 },
                 fileTabs: {
-                    tabPaneKey: '',
+                    currentTabPaneName: '',
                     tabPanes: []
                 }
             };
@@ -85,7 +86,7 @@
                 }
 
                 if (app.fileTabs.tabPanes.filter(o => o.name === data.path).length !== 0) {
-                    app.fileTabs.tabPaneKey = data.path;
+                    app.fileTabs.currentTabPaneName = data.path;
                     return;
                 }
 
@@ -102,7 +103,7 @@
                         name: data.path,
                         contentLines: contentLines
                     });
-                    app.fileTabs.tabPaneKey = data.path;
+                    app.fileTabs.currentTabPaneName = data.path;
                 }).catch((error) => {
                     console.error(error.message);
                     app.$message({
@@ -111,22 +112,21 @@
                     });
                 });
             },
-            handleRemoveTab(targetTabName) {
-                let tabs = app.fileTabs.tabPanes;
-                let activeName = app.fileTabs.tabPaneKey;
-                if (activeName === targetTabName) {
-                    tabs.forEach((tab, index) => {
-                        if (tab.name === targetTabName) {
-                            let nextTab = tabs[index + 1] || tabs[index - 1];
-                            if (nextTab) {
-                                activeName = nextTab.name;
+            removeTab(targetTabPaneName) {
+                let tabPanes = app.fileTabs.tabPanes;
+                let currentTabPaneName = app.fileTabs.currentTabPaneName;
+                if (targetTabPaneName === currentTabPaneName) {
+                    tabPanes.forEach((tabPane, index) => {
+                        if (tabPane.name === targetTabPaneName) {
+                            let nextTabPane = tabPanes[index + 1] || tabPanes[index - 1];
+                            if (nextTabPane) {
+                                currentTabPaneName = nextTabPane.name;
                             }
                         }
                     });
                 }
-
-                app.fileTabs.tabPaneKey = activeName;
-                app.fileTabs.tabPanes = tabs.filter(tab => tab.name !== targetTabName);
+                app.fileTabs.currentTabPaneName = currentTabPaneName;
+                app.fileTabs.tabPanes = tabPanes.filter(tab => tab.name !== targetTabPaneName);
             }
         }
     });
