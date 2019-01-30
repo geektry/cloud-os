@@ -6,15 +6,17 @@
 
     <link rel="stylesheet" th:href="@{/lib/element-ui/2.4.11/index.css}"/>
     <link rel="stylesheet" th:href="@{/lib/fontawesome/5.6.3/all.css}"/>
+    <link rel="stylesheet" th:href="@{/lib/highlight.js/9.14.1/darcula.min.css}">
 
     <script th:src="@{/lib/vue/2.5.22/vue.min.js}"></script>
     <script th:src="@{/lib/element-ui/2.4.11/index.js}"></script>
     <script th:src="@{/lib/axios/0.18.0/axios.min.js}"></script>
+    <script th:src="@{/lib/highlight.js/9.14.1/highlight.min.js}"></script>
 </head>
 <body style="font-family: 'Helvetica Neue',Helvetica,'PingFang SC','Hiragino Sans GB','Microsoft YaHei','微软雅黑',Arial,sans-serif;">
 <div id="app">
     <el-row :gutter="20">
-        <el-col :span="6">
+        <el-col :offset="2" :span="4">
             <el-tree style="height: 700px; overflow: auto;"
                      @node-click="handleNodeClick"
                      :props="nodeTree.nodeProps"
@@ -24,18 +26,17 @@
                      lazy></el-tree>
         </el-col>
 
-        <el-col :span="18">
-            <el-tabs style="height: 700px; overflow: auto;"
-                     v-model="fileTabs.currentTabPaneName"
+        <el-col :span="12">
+            <el-tabs v-model="fileTabs.currentTabPaneName"
                      type="card"
                      closable
                      @tab-remove="removeTab">
                 <el-tab-pane v-for="tabPane in fileTabs.tabPanes"
                              :label="tabPane.label"
                              :name="tabPane.name">
-                    <span v-for="line in tabPane.contentLines">
-                        {{ line }}<br>
-                    </span>
+                    <pre>
+                        <code style="height: 600px; overflow: auto;">{{ tabPane.content }}</code>
+                    </pre>
                 </el-tab-pane>
             </el-tabs>
         </el-col>
@@ -91,19 +92,22 @@
                 }
 
                 axios({
-                    url: '/api/file',
+                    url: '/api/text_file_content',
                     method: 'get',
                     params: {
                         path: data.path
                     }
                 }).then((response) => {
-                    const contentLines = response.data;
+                    const textFileContent = response.data;
                     app.fileTabs.tabPanes.push({
                         label: data.name,
                         name: data.path,
-                        contentLines: contentLines
+                        content: textFileContent
                     });
-                    app.fileTabs.currentTabPaneName = data.path;
+                    Vue.nextTick(() => {
+                        document.querySelectorAll('pre code').forEach(hljs.highlightBlock);
+                        app.fileTabs.currentTabPaneName = data.path;
+                    });
                 }).catch((error) => {
                     console.error(error.message);
                     app.$message({

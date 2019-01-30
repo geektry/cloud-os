@@ -32,10 +32,9 @@ public class ApiController {
                 .collectList();
     }
 
-    @GetMapping("/api/file")
-    public Mono<List<String>> listFileLines(@RequestParam("path") String path) throws IOException {
+    @GetMapping("/api/text_file_content")
+    public Mono<String> getTextFileContent(@RequestParam("path") String path) throws IOException {
 
-        return Flux.fromStream(Files.lines(Paths.get(path)))
-                .collectList();
+        return Mono.just(Files.readString(Paths.get(path)));
     }
 }
