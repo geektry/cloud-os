@@ -16,24 +16,23 @@
 <body style="font-family: 'Helvetica Neue',Helvetica,'PingFang SC','Hiragino Sans GB','Microsoft YaHei','微软雅黑',Arial,sans-serif;">
 <div id="app">
     <el-row :gutter="10">
-        <el-col :offset="2" :span="4">
-            <el-tree style="height: 98vh; overflow: auto;"
+        <el-col :span="4">
+            <el-tree style="height: 95vh; overflow: auto;"
                      @node-click="handleNodeClick"
                      node-key="path"
                      :props="nodeTree.nodeProps"
                      :load="loadNode"
                      highlight-current
                      :default-expanded-keys="['/']"
+                     current-node-key="/"
                      accordion
                      lazy></el-tree>
         </el-col>
 
-        <el-col :span="12">
-            <el-breadcrumb separator-class="el-icon-arrow-right">
-                <el-breadcrumb-item>首页</el-breadcrumb-item>
-                <el-breadcrumb-item>活动管理</el-breadcrumb-item>
-                <el-breadcrumb-item>活动列表</el-breadcrumb-item>
-                <el-breadcrumb-item>活动详情</el-breadcrumb-item>
+        <el-col :span="16">
+            <el-breadcrumb style="margin-bottom: 10px;"
+                           separator-class="el-icon-arrow-right">
+                <el-breadcrumb-item v-for="item in breadcrumb">{{ item }}</el-breadcrumb-item>
             </el-breadcrumb>
 
             <el-tabs v-model="fileTabs.currentTabPaneName"
@@ -51,8 +50,11 @@
         </el-col>
 
         <el-col :span="4">
-            <el-button size="medium" type="primary" plain>上传文件</el-button>
-            <el-button size="medium" type="primary" plain>下载文件</el-button>
+            <el-button size="mini" type="primary" plain>新增目录</el-button>
+            <br>
+            <br>
+            <el-button size="mini" type="primary" plain>上传文件</el-button>
+            <br>
         </el-col>
     </el-row>
 </div>
@@ -68,6 +70,7 @@
                         isLeaf: 'isLeaf'
                     }
                 },
+                breadcrumb: ['/'],
                 fileTabs: {
                     currentTabPaneName: '',
                     tabPanes: []
@@ -96,6 +99,8 @@
                 });
             },
             handleNodeClick(data, node, component) {
+                this.syncBreadcrumb(data.path);
+
                 if (data.type === 'DIR') {
                     return;
                 }
@@ -129,6 +134,12 @@
                         type: 'warning'
                     });
                 });
+            },
+            syncBreadcrumb(path) {
+                const separator = path.charAt(0);
+                const pathArray = path.split(separator);
+                pathArray.splice(0, 1, '/');
+                app.breadcrumb = pathArray;
             },
             removeTab(targetTabPaneName) {
                 let tabPanes = app.fileTabs.tabPanes;
