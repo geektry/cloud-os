@@ -18,7 +18,7 @@
     <el-row :gutter="10">
         <el-col :span="4">
             <el-tree style="height: 95vh; overflow: auto;"
-                     @node-click="handleNodeClick"
+                     @node-click="clickNode"
                      node-key="path"
                      :props="nodeTree.nodeProps"
                      :load="loadNode"
@@ -38,6 +38,7 @@
             <el-tabs v-model="fileTabs.currentTabPaneName"
                      type="card"
                      closable
+                     @tab-click="clickTab"
                      @tab-remove="removeTab">
                 <el-tab-pane v-for="tabPane in fileTabs.tabPanes"
                              :label="tabPane.label"
@@ -50,7 +51,7 @@
         </el-col>
 
         <el-col :span="4">
-            <el-button size="mini" type="primary" plain>新增目录</el-button>
+            <el-button size="mini" type="primary" plain @click="showLoading">新增目录</el-button>
             <br>
             <br>
             <el-button size="mini" type="primary" plain>上传文件</el-button>
@@ -78,6 +79,16 @@
             };
         },
         methods: {
+            showLoading() {
+                app.$loading({
+                    lock: true,
+                    text: '正在加载...',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+            },
+            hideLoading() {
+                app.$loading().close();
+            },
             loadNode(node, resolve) {
                 if (node.level === 0) {
                     return resolve([{ type: 'DIR', path: '/', name: '/', isLeaf: false }]);
@@ -98,12 +109,14 @@
                     });
                 });
             },
-            handleNodeClick(data, node, component) {
-                this.syncBreadcrumb(data.path);
+            clickNode: function (data, node, component) {
+                this.updateBreadcrumb(data.path);
 
                 if (data.type === 'DIR') {
                     return;
                 }
+
+                app.showLoading();
 
                 if (app.fileTabs.tabPanes.filter(o => o.name === data.path).length !== 0) {
                     app.fileTabs.currentTabPaneName = data.path;
@@ -124,7 +137,9 @@
                         content: textFileContent
                     });
                     Vue.nextTick(() => {
-                        document.querySelectorAll('pre code').forEach(hljs.highlightBlock);
+                        const preCodeBlocks = document.querySelectorAll('pre>code');
+                        const len = preCodeBlocks.length;
+                        hljs.highlightBlock(preCodeBlocks.item(len - 1));
                         app.fileTabs.currentTabPaneName = data.path;
                     });
                 }).catch((error) => {
@@ -133,13 +148,18 @@
                         message: '暂时不支持查看此类文件~',
                         type: 'warning'
                     });
+                }).finally(() => {
+                    app.hideLoading();
                 });
             },
-            syncBreadcrumb(path) {
+            updateBreadcrumb(path) {
                 const separator = path.charAt(0);
                 const pathArray = path.split(separator);
                 pathArray.splice(0, 1, '/');
                 app.breadcrumb = pathArray;
+            },
+            clickTab(tab, event) {
+                this.updateBreadcrumb(tab.name);
             },
             removeTab(targetTabPaneName) {
                 let tabPanes = app.fileTabs.tabPanes;
