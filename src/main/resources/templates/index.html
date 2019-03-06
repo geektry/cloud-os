@@ -51,11 +51,12 @@
         </el-col>
 
         <el-col :span="4">
-            <el-button size="mini" type="primary" plain @click="showLoading">新增目录</el-button>
-            <br>
-            <br>
-            <el-button size="mini" type="primary" plain>上传文件</el-button>
-            <br>
+            <div v-show="!nodeTree.currentNodeData.isLeaf">
+                <el-button size="mini" type="primary" plain>上传文件</el-button>
+            </div>
+            <div v-show="nodeTree.currentNodeData.isLeaf">
+                <el-button size="mini" type="primary" plain>下载文件</el-button>
+            </div>
         </el-col>
     </el-row>
 </div>
@@ -66,6 +67,7 @@
         data() {
             return {
                 nodeTree: {
+                    currentNodeData: {},
                     nodeProps: {
                         label: 'name',
                         isLeaf: 'isLeaf'
@@ -109,19 +111,21 @@
                     });
                 });
             },
-            clickNode: function (data, node, component) {
-                this.updateBreadcrumb(data.path);
+            clickNode(data, node, component) {
+                this.nodeTree.currentNodeData = data;
+
+                app.updateBreadcrumb(data.path);
 
                 if (data.type === 'DIR') {
                     return;
                 }
 
-                app.showLoading();
-
                 if (app.fileTabs.tabPanes.filter(o => o.name === data.path).length !== 0) {
                     app.fileTabs.currentTabPaneName = data.path;
                     return;
                 }
+
+                app.showLoading();
 
                 axios({
                     url: '/api/text_file_content',
@@ -145,7 +149,7 @@
                 }).catch((error) => {
                     console.error(error.message);
                     app.$message({
-                        message: '暂时不支持查看此类文件~',
+                        message: '暂时不支持查看此类型文件~',
                         type: 'warning'
                     });
                 }).finally(() => {
@@ -159,7 +163,7 @@
                 app.breadcrumb = pathArray;
             },
             clickTab(tab, event) {
-                this.updateBreadcrumb(tab.name);
+                app.updateBreadcrumb(tab.name);
             },
             removeTab(targetTabPaneName) {
                 let tabPanes = app.fileTabs.tabPanes;
